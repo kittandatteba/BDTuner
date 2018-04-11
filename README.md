@@ -1,17 +1,17 @@
 # BDTuner
 
-### これは何？
+## これは何？
 ブルドッグ・チューナーことAKB-PCR20X用を各種アプリケーションから使用するためのライブラリ（DLL）です。  
 PT3-SDK（SDK_EARTHSOFT_PT3.dll）として振る舞うため、PT3用アプリケーション（ptTimer、BonDriver_PT3-STなど）からブルドッグ・チューナーが使用可能になります。  
 
-### 制限事項
+## 制限事項
 以下の制限事項があります。
 - AKB-PCR20XはISDB-S 1TSとISDB-T 1TSの合計2TSのため、1台接続時はPT3-SDKの2個目のチューナーは受信不能状態（アンテナが繋がっていない状態と同じ）になります。  
 AKB-PCR20Xを2台接続した場合は、PT3と同様にISDB-S 2TSとISDB-T 2TSの合計4TSを同時に受信可能です。（複数台接続の際にシリアルROMのID番号書き換えは不要です。）  
 - アプリケーション起動中のUSBの抜き差しには対応していません。
 - LNB給電はできません。（そもそもハードウェアに実装されていないため。）
 
-### 内容
+## 内容
 リポジトリは以下の構成になっています。
 * src\PT3SDKSimulator  
 PT3-SDK（SDK_EARTHSOFT_PT3.dll）をシミュレートするDLLです。  
@@ -36,7 +36,7 @@ Intel Quatus Primeのプロジェクト形式になっています。
 * external  
 外部ヘッダーファイル、ライブラリの格納場所です。
 
-### ビルド方法
+## ビルド方法
 **32bit版**のDLLおよびアプリケーションの作成手順です。
 
 * PT3-SDKヘッダーファイルの入手と展開  
@@ -59,7 +59,7 @@ zipファイル中の「EZ-USB FX3 SDK\1.3\library\cpp\inc」にある「CyAPI.h」「CyUSB30_
 Visual Studioで「BDTuner\src」にある「BDTuner.sln」を開き、「ソリューションのビルド」を実行します。  
 成功すると「BDTuner\src\Release（Debugビルドの場合はBDTuner\src\Debug）」に、「SDK_EARTHSOFT_PT3.dll」と「CPLDProgrammer.exe」が作成されます。
 
-### 導入手順
+## 導入手順
 本ソフトウェアを使用するための導入手順です。
 * CyUSB3ドライバの入手とインストール   
 CyUSB3ドライバをダウンロードし、使用OSに合ったドライバをインストールします。
@@ -77,12 +77,12 @@ CPLDProgrammer.exe ..\..\quatus\output_files_sample\tuner.svf
 CPLDProgrammerは書き込み速度を追及していないため、完了まで30分ほどかかります。途中経過として実行したSVFの命令が標準出力に出力されます。最後に「finished normal」と出力されれば成功です。  
 ロジックを書き込みの際、PCに接続するチューナー本体は**1台のみ**にしてください。
 
-### 使用方法
+## 使用方法
 本ソフトウェアの使用方法です。  
 * 基本的には、使用するアプリケーションの.exeファイルがあるディレクトリに「SDK_EARTHSOFT_PT3.dll」を配置すれば使用できるはずです。  
 ただし、WindowsのシステムディレクトリにあるPT3-SDKのDLLファイルのみを参照するアプリケーション（ptTimerなど）では「%SystemRoot%\SysWOW64（WindowsOSが32bit版の場合は%SystemRoot%\System32）」に「SDK_EARTHSOFT_PT3.dll」を配置する必要があります。
 
-### 参考資料
+## 参考資料
 作成にあたって、以下のソフトウェアを利用・参照させて頂きました。 ありがとうございます。
 * デジ太郎氏 cap_sts_ 2008_03_18版
 * アースソフト PT3-SDK ソースコード
