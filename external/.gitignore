@@ -1,0 +1,8 @@
+/inc/*
+!/inc/.gitkeep
+!/lib/x86/
+/lib/x86/*
+!/lib/x86/.gitkeep
+!/lib/x64/
+/lib/x64/*
+!/lib/x64/.gitkeep
