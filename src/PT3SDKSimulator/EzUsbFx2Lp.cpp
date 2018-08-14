@@ -46,6 +46,30 @@ void EzUsbFx2Lp::init(uint8 usbadr) {
   mEpCtrlIn->Reset();
   mEpCtrlOut->Reset();
 
+  UCHAR cmd[6];
+  LONG cmd_len = 0;
+
+  // FX2のポートD設定
+  cmd[cmd_len++] = CMD_PORT_CFG;
+  cmd[cmd_len++] = 0x00U;
+  cmd[cmd_len++] = 0x20U;   // PIO_START
+
+  // ゴミを書かないようにアイドルモードに戻す
+  cmd[cmd_len++] = CMD_MODE_IDLE;
+
+  // FX2のIFCONFIGレジスタ設定
+  // IFCLK=48MHz, IFCLK出力, 同期(Sync)モード 
+  cmd[cmd_len++] = CMD_IFCONFIG;
+  cmd[cmd_len++] = 0xe3U;
+
+  // 制御データを送信
+  if (!mEpCtrlOut->XferData(cmd, cmd_len)) {
+    TRACE_F(_T("CCyControlEndPoint::XferData() fail."
+      << " cmd=") << std::hex << cmd
+      << _T(" cmd_len=") << std::dec << cmd_len);
+    throw InternalException(STATUS_GENERAL_ERROR, "CCyControlEndPoint::XferData() fail.");
+  }
+
   // Bulkエンドポイントの取得
   mEpDataS = static_cast<CCyBulkEndPoint*>(mUsbDevice->EndPointOf(EPA_DATA_S));
   mEpDataT = static_cast<CCyBulkEndPoint*>(mUsbDevice->EndPointOf(EPA_DATA_T));
@@ -145,6 +169,8 @@ void EzUsbFx2Lp::setXferEnable(Device::ISDB isdb, bool enabled) {
 
   if (enabled) {
     cmd[cmd_len++] = (isdb == Device::ISDB_S) ? CMD_EP2IN_START : CMD_EP6IN_START;
+    cmd[cmd_len++] = CMD_PORT_WRITE;
+    cmd[cmd_len++] = 0x20U;   // PIO_START
   } else {
     cmd[cmd_len++] = (isdb == Device::ISDB_S) ? CMD_EP2IN_STOP : CMD_EP6IN_STOP;
   }

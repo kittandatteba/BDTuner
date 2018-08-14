@@ -66,6 +66,8 @@ set_location_assignment PIN_36 -to FX2_FD[1]
 set_location_assignment PIN_35 -to FX2_FD[0]
 set_location_assignment PIN_19 -to FX2_FIFOADR[1]
 set_location_assignment PIN_20 -to FX2_FIFOADR[0]
+set_location_assignment PIN_4 -to MODE[1]
+set_location_assignment PIN_3 -to MODE[0]
 set_location_assignment PIN_28 -to FX2_FLAGA
 set_location_assignment PIN_27 -to FX2_FLAGB
 set_location_assignment PIN_26 -to FX2_FLAGC
@@ -74,6 +76,7 @@ set_location_assignment PIN_18 -to FX2_PKTEND
 set_location_assignment PIN_21 -to FX2_SLOE
 set_location_assignment PIN_5 -to FX2_SLRD
 set_location_assignment PIN_6 -to FX2_SLWR
+set_location_assignment PIN_2 -to START
 set_location_assignment PIN_69 -to TS_ERR
 set_location_assignment PIN_55 -to TS_JERR
 set_location_assignment PIN_58 -to TS_JPBVAL
@@ -91,11 +94,3 @@ set_global_assignment -name AUTO_RESTART_CONFIGURATION OFF
 set_global_assignment -name ENABLE_CONFIGURATION_PINS OFF
 set_global_assignment -name ENABLE_BOOT_SEL_PIN OFF
 set_global_assignment -name GENERATE_SVF_FILE ON
-set_location_assignment PIN_17 -to FX2_FD[8]
-set_location_assignment PIN_16 -to FX2_FD[9]
-set_location_assignment PIN_15 -to FX2_FD[10]
-set_location_assignment PIN_8 -to FX2_FD[11]
-set_location_assignment PIN_7 -to FX2_FD[12]
-set_location_assignment PIN_2 -to FX2_FD[13]
-set_location_assignment PIN_3 -to FX2_FD[14]
-set_location_assignment PIN_4 -to FX2_FD[15]

@@ -58,16 +58,16 @@ void TD_Init(void)             // Called once at startup
 	REVCTL = 0x03; SYNCDELAY;		// see TRM 15.5.9
 
 	EP2CFG = 0xE0;	//(IN, Size = 512, buf = Quad (Buf x4), BULK);
-	SYNCDELAY;                    
+	SYNCDELAY;
 
 	EP4CFG = 0x00;
-	SYNCDELAY;                    
+	SYNCDELAY;
 
 	EP6CFG = 0xE0;	//(IN, Size = 512, buf = Quad (Buf x4), BULK) 
 	SYNCDELAY;
 
 	EP8CFG = 0x00;
-	SYNCDELAY;                    
+	SYNCDELAY;
 
 	FIFOPINPOLAR = 0x00; SYNCDELAY;
 	EP2AUTOINLENH = 0x02; SYNCDELAY;
@@ -75,28 +75,36 @@ void TD_Init(void)             // Called once at startup
 	EP6AUTOINLENH = 0x02; SYNCDELAY;
 	EP6AUTOINLENL = 0x00; SYNCDELAY;
 
-	FIFORESET = 0x80; SYNCDELAY; // activate NAK-ALL to avoid race conditions
-	FIFORESET = 0x02; SYNCDELAY; // reset, FIFO 2
-	FIFORESET = 0x04; SYNCDELAY; // reset, FIFO 4
-	FIFORESET = 0x06; SYNCDELAY; // reset, FIFO 6
-	FIFORESET = 0x08; SYNCDELAY; // reset, FIFO 8
-	FIFORESET = 0x00; SYNCDELAY; // deactivate NAK-ALL
+	FIFORESET = 0x80; SYNCDELAY;	// activate NAK-ALL to avoid race conditions
+	FIFORESET = 0x02; SYNCDELAY;	// reset, FIFO 2
+	FIFORESET = 0x04; SYNCDELAY;	// reset, FIFO 4
+	FIFORESET = 0x06; SYNCDELAY;	// reset, FIFO 6
+	FIFORESET = 0x08; SYNCDELAY;	// reset, FIFO 8
+	FIFORESET = 0x00; SYNCDELAY;	// deactivate NAK-ALL
 
 	// enable dual autopointer feature & inc
 	AUTOPTRSETUP = 0x07;
 
+	IOD = 0x00;	//MODE_IDLE
+	OED = 0xc0;	//MODE is output
+
 	PINFLAGSAB = 0xec;	//FLAGA=EP2FF FLAGB=EP6FF
 	SYNCDELAY;                    
-
-	IFCONFIG = 0xE3;	// An internal clock is used, 48 MHz, Drive, Slave FIFO
 }
+
+#define	MODE_IDLE	(0<<6)
+#define	MODE_START	(1<<6)
 
 #define CMD_EP6IN_START		0x50	//
 #define	CMD_EP6IN_STOP		0x51	//
 #define	CMD_EP2IN_START		0x52	//
 #define	CMD_EP2IN_STOP		0x53	//
-#define	CMD_I2C_READ		0x54	//adrs,len (return length bytes)(max 64bytes)
-#define	CMD_I2C_WRITE		0x55	//adrs,len,data... (max 64bytes) 
+#define	CMD_PORT_CFG		0x54	//addr_mask, out_pins
+#define	CMD_PORT_WRITE		0x55	//value
+#define	CMD_IFCONFIG		0x56	//value
+#define	CMD_MODE_IDLE		0x57
+#define	CMD_I2C_READ		0x58	//adrs,len (return length bytes)(max 64bytes)
+#define	CMD_I2C_WRITE		0x59	//adrs,len,data... (max 64bytes) 
 
 #define	I2CBF_LEN	64
 
@@ -108,7 +116,7 @@ void TD_Poll(void)              // Called repeatedly while the device is idle
 {
 	u8 i;
 	u8 cmd_cnt,ret_cnt,len;
-	u8 adrs;
+	u8 addr_mask,adrs;
 
 	if(!(EP1OUTCS & bmEPBUSY))
 	{
@@ -145,25 +153,50 @@ void TD_Poll(void)              // Called repeatedly while the device is idle
 				}
 				EZUSB_WriteI2C(adrs, len, i2cbf);
 				break;
+			case CMD_PORT_WRITE:
+				IOD = (IOD & ~addr_mask) | XAUTODAT1;
+				cmd_cnt-=1;
+				break;
+			case CMD_PORT_CFG:
+				addr_mask = (XAUTODAT1 | 0xc0);
+				OED = XAUTODAT1 | addr_mask;
+				addr_mask = ~addr_mask;
+ 			    cmd_cnt-=2;
+				break;
+			case CMD_IFCONFIG:
+				val_ifconfig = XAUTODAT1;
+				cmd_cnt-=1;
+				break;
 			case CMD_EP6IN_START:
+				IFCONFIG = val_ifconfig;
+
 				FIFORESET = 0x06;	// reset, FIFO 6
 				SYNCDELAY;
-				EP6FIFOCFG = 0x0D;	//16bit, Auto-IN
+
+				EP6FIFOCFG = 0x0C;	//8bit, Auto-IN
 				SYNCDELAY;
+
+				IOD = MODE_START | (IOD & 0x3f);
 				break;
 			case CMD_EP6IN_STOP:
-				EP6FIFOCFG = 0x05;	// 16bit
-				SYNCDELAY;
+				EP6FIFOCFG = 0x04;	//8bit
 				break;
 			case CMD_EP2IN_START:
+				IFCONFIG = val_ifconfig;
+
 				FIFORESET = 0x02;	// reset, FIFO 2
 				SYNCDELAY;
-				EP2FIFOCFG = 0x0D;	// 16bit, Auto-IN
+
+				EP2FIFOCFG = 0x0C;	//8bit, Auto-IN
 				SYNCDELAY;
+
+				IOD = MODE_START | (IOD & 0x3f);
 				break;
 			case CMD_EP2IN_STOP:
-				EP2FIFOCFG = 0x05;	// 16bit
-				SYNCDELAY;
+				EP2FIFOCFG = 0x04;	//8bit
+				break;
+			case CMD_MODE_IDLE:
+				IOD = MODE_IDLE | (IOD & 0x3f);
 				break;
 			}
 		}
@@ -246,14 +279,14 @@ BOOL DR_VendorCmnd(void)
   {
      case VR_NAKALL_ON:
         tmp = FIFORESET;
-        tmp |= bmNAKALL;      
-        SYNCDELAY;                    
+        tmp |= bmNAKALL;
+        SYNCDELAY;
         FIFORESET = tmp;
         break;
      case VR_NAKALL_OFF:
         tmp = FIFORESET;
-        tmp &= ~bmNAKALL;      
-        SYNCDELAY;                    
+        tmp &= ~bmNAKALL;
+        SYNCDELAY;
         FIFORESET = tmp;
         break;
      default:

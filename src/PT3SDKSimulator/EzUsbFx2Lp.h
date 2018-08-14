@@ -108,8 +108,12 @@ private:
     CMD_EP6IN_STOP = 0x51U,
     CMD_EP2IN_START = 0x52U,
     CMD_EP2IN_STOP = 0x53U,
-    CMD_I2C_READ = 0x54U,		//adrs,len (return length bytes)(max 64bytes)
-    CMD_I2C_WRITE = 0x55U		//adrs,len,data... (max 64bytes)
+    CMD_PORT_CFG = 0x54U,		//addr_mask, out_pins
+    CMD_PORT_WRITE = 0x55U,	//value
+    CMD_IFCONFIG = 0x56U,		//value
+    CMD_MODE_IDLE = 0x57U,
+    CMD_I2C_READ = 0x58U,		//adrs,len (return length bytes)(max 64bytes)
+    CMD_I2C_WRITE = 0x59U		//adrs,len,data... (max 64bytes)
   };
 
   /**
