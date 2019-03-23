@@ -35,7 +35,7 @@ public:
   /**
   * ファームウェアをロードし、各種初期化を行う。
   */
-  void init(uint8 usbadr);
+  void init(uint8 devNum);
 
   /**
   * TSデータ転送スレッドを開始する。
@@ -64,21 +64,8 @@ private:
   /**
   * TSデータ転送バッファの本数
   */
-  //static const uint32 TS_QUEUE_NUM = 16UL;
+  //static constexpr uint32 TS_QUEUE_NUM = 16UL;
   static constexpr uint32 TS_QUEUE_NUM = 8UL;
-
-  /**
-  * ファームウェア名
-  */
-  static constexpr wchar_t FX2FW_NAME[] = L"FX2_TUNR";
-
-  /**
-  * ファームウェアデータ
-  */
-  static constexpr uint8 FX2FW_DATA[] =
-  {
-    #include "FX2FarmwareTuner.inc"
-  };
 
   /**
   * ReNumerationの最大リトライ回数
@@ -129,22 +116,6 @@ private:
   };
 
   /**
-  * 排他制御用クラス
-  */
-  class GetLock {
-  public:
-    GetLock(LPCRITICAL_SECTION cSPointer) :mCSPointer(cSPointer) {
-      ::EnterCriticalSection(mCSPointer);
-    }
-
-    ~GetLock() {
-      ::LeaveCriticalSection(mCSPointer);
-    }
-  private:
-    LPCRITICAL_SECTION  mCSPointer;
-  };
-
-  /**
   * データ受信スレッド情報
   */
   ThreadInfo mThreadInfo[Device::ISDB::ISDB_COUNT];
@@ -187,7 +158,7 @@ private:
   /**
   * ファームウェアのロードを行う。
   */
-  void loadFW(uint8 usbadr);
+  void loadFW(uint8 devNum);
 
   EzUsbFx2Lp(EzUsbFx2Lp const&) = delete;
   EzUsbFx2Lp(EzUsbFx2Lp&&) = delete;

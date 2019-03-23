@@ -1,5 +1,6 @@
 #include "stdafx.h"
 #include "InternalException.h"
+#include "BDUtil.h"
 #include "Jdts290532S.h"
 
 namespace EARTH {
@@ -245,24 +246,6 @@ void Jdts290532S::getTmcc(Device::TmccT * tmcc) const {
 }
 
 
-void Jdts290532S::initReg(uint8 * reg_val, uint8 offset, size_t size) {
-
-  constexpr uint8 init_val[] =
-  {
-    0x07,	// [7:3](リファレンス周波数)=0(16MHz)、[2](LPT)=1(WAKE UP)、[1](RX)=1(WAKE UP)、[0](SYN)=1(WAKE UP)
-    0x11,
-    0xdc,
-    0x85,
-    0x0c,	// [6](RCCLKOFF)=0(Activate the calibration clock)、[4:0](帯域幅)=12(34.5MHz / 2 - 5)
-    0x01,
-    0xe6,
-    0x1e
-  };
-
-  ::CopyMemory(reg_val, &init_val[offset], size);
-}
-
-
 uint32 Jdts290532S::getChannelFrequency(uint32 channel, sint32 offset) {
 
   // チャンネル番号の有効範囲チェック
@@ -288,6 +271,24 @@ uint32 Jdts290532S::getChannelFrequency(uint32 channel, sint32 offset) {
   return freq_khz;
 }
 
+
+void Jdts290532S::initReg(uint8 * reg_val, uint8 offset, size_t size) const {
+
+  uint8 init_val[] =
+  {
+    0x07,	// [7:3](リファレンス周波数)=0(16MHz)、[2](LPT)=1(WAKE UP)、[1](RX)=1(WAKE UP)、[0](SYN)=1(WAKE UP)
+    0x11,
+    0xdc,
+    0x85,
+    0x0c,	// [6](RCCLKOFF)=0(Activate the calibration clock)、[4:0](帯域幅)=12(34.5MHz / 2 - 5)
+    0x01,
+    0xe6,
+    0x1e
+  };
+
+  setField(init_val[1], 0, 4, BDUtil::mTunerBBGain & 0x0fU);
+  ::CopyMemory(reg_val, &init_val[offset], size);
+}
 
 
 void Jdts290532S::tuneRf(uint32 freq) const {

@@ -2,6 +2,7 @@
 #include <process.h>
 #include <algorithm>
 #include "InternalException.h"
+#include "BDUtil.h"
 #include "IReceiver.h"
 #include "EzUsbFx2Lp.h"
 
@@ -28,9 +29,9 @@ EzUsbFx2Lp::~EzUsbFx2Lp() {
 }
 
 
-void EzUsbFx2Lp::init(uint8 usbadr) {
+void EzUsbFx2Lp::init(uint8 devNum) {
   // ファームウェアのロード
-  loadFW(usbadr);
+  loadFW(devNum);
 
   // Controlエンドポイントの取得
   mEpCtrlIn = static_cast<CCyControlEndPoint*>(mUsbDevice->EndPointOf(EPA_CTL_IN));
@@ -92,7 +93,7 @@ uint32 EzUsbFx2Lp::xfer(Message* msg, uint32 len) {
   LONG	cmd_len = 0;
   LONG	total_len = 0;
 
-  GetLock lock(&mCriticalSection);
+  BDUtil::CSLock lock(&mCriticalSection);
 
   for (uint32 i = 0; i < len; i++) {
     cmd_len = 0;
@@ -165,7 +166,7 @@ void EzUsbFx2Lp::setXferEnable(Device::ISDB isdb, bool enabled) {
   UCHAR cmd[3];
   LONG cmd_len = 0;
 
-  GetLock lock(&mCriticalSection);
+  BDUtil::CSLock lock(&mCriticalSection);
 
   if (enabled) {
     cmd[cmd_len++] = (isdb == Device::ISDB_S) ? CMD_EP2IN_START : CMD_EP6IN_START;
@@ -240,32 +241,67 @@ unsigned EzUsbFx2Lp::processXferThread(void *arg) {
   return 0;
 }
 
-void EzUsbFx2Lp::loadFW(uint8 usbadr) {
+void EzUsbFx2Lp::loadFW(uint8 devNum) {
+
+  // ファームウェア名
+  static constexpr wchar_t FX2FW_NAME[] = L"FX2_TUNR";
+
+  // ファームウェアデータ
+  static constexpr uint8 FX2FW_DATA[] =
+  {
+    #include "FX2FarmwareTuner.inc"
+  };
+
+  BDUtil::MLock lock;
 
   // デバイスの数
   uint8 devices = mUsbDevice->DeviceCount();
 
-  // USBアドレスがスキャン時と一致するデバイスをオープン
+  // デバイス番号が一致するデバイスをオープン
   for (uint8 i = 0; i < devices; i++) {
     mUsbDevice->Open(i);
     if (mUsbDevice->IsOpen()) {
-      if (mUsbDevice->USBAddress == usbadr) {
+      // BcdDevice: 0xff** (After ReNumeration)
+      // VendorID:  0x04b4
+      // ProductID: 0x1004 (After ReNumeration)
+      if (mUsbDevice->BcdDevice == (0xff00U + devNum)
+        && mUsbDevice->VendorID == 0x04b4U
+        && mUsbDevice->ProductID == 0x1004U) {
         break;
       }
       mUsbDevice->Close();
     }
   }
 
+  if (mUsbDevice->IsOpen()) {
+    // 必要なファームがロード済みの場合スキップ
+    if (::wcscmp(mUsbDevice->Manufacturer, FX2FW_NAME) == 0) {
+      return;
+    }
+  }
+
+  if (!mUsbDevice->IsOpen()) {
+    for (uint8 i = 0; i < devices; i++) {
+      mUsbDevice->Open(i);
+      if (mUsbDevice->IsOpen()) {
+        // BcdDevice: 0xa0** (Before ReNumeration)
+        // VendorID:  0x04b4
+        // ProductID: 0x8613 (Before ReNumeration)
+        if ((mUsbDevice->BcdDevice & 0xff00U) == 0xa000U
+          && mUsbDevice->VendorID == 0x04b4U
+          && mUsbDevice->ProductID == 0x8613U) {
+          break;
+        }
+        mUsbDevice->Close();
+      }
+    }
+  }
+
   // デバイスのオープン失敗の場合はエラー
   if (!mUsbDevice->IsOpen()) {
     TRACE_F(_T("CCyUSBDevice::Open() fail.")
-      << _T(" usbadr=") << std::dec << usbadr);
+      << _T(" devNum=") << std::dec << devNum);
     throw InternalException(STATUS_GENERAL_ERROR, "CCyUSBDevice::Open() fail.");
-  }
-
-  // 必要なファームがロード済みの場合スキップ
-  if (::wcscmp(mUsbDevice->Manufacturer, FX2FW_NAME) == 0) {
-    return;
   }
 
   constexpr uint32_t FX2FW_SIZE = sizeof(FX2FW_DATA) / sizeof(UCHAR);
@@ -294,7 +330,7 @@ void EzUsbFx2Lp::loadFW(uint8 usbadr) {
     UCHAR* last = fwIndex + (length & 0x7fffU);
     UCHAR* find = std::search(fwIndex, last, descriptor, descriptor + sizeof(descriptor));
     if (find < last) {
-      find[4] = usbadr;
+      find[4] = devNum;
       find[5] = 0xffU;
     }
 
@@ -322,7 +358,7 @@ void EzUsbFx2Lp::loadFW(uint8 usbadr) {
         // BcdDevice: 0xff** (After ReNumeration)
         // VendorID:  0x04b4
         // ProductID: 0x1004 (After ReNumeration)
-        if (mUsbDevice->BcdDevice == (0xff00U + usbadr)
+        if (mUsbDevice->BcdDevice == (0xff00U + devNum)
           && mUsbDevice->VendorID == 0x04b4U
           && mUsbDevice->ProductID == 0x1004U) {
           find = true;
@@ -340,7 +376,7 @@ void EzUsbFx2Lp::loadFW(uint8 usbadr) {
   // デバイスがオープンされていない場合はエラー
   if (!mUsbDevice->IsOpen()) {
     TRACE_F(_T("CCyUSBDevice::Open() fail.")
-      << _T(" usbadr=") << std::dec << usbadr);
+      << _T(" devNum=") << std::dec << devNum);
     throw InternalException(STATUS_GENERAL_ERROR, "CCyUSBDevice::Open() fail.");
   }
 }

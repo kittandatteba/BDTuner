@@ -3,13 +3,14 @@
 #include "EzUsbFx2Lp.h"
 #include "Jdts290532S.h"
 #include "Jdts290532T.h"
-#include "BD_Device.h"
+#include "BDUtil.h"
+#include "BDDevice.h"
 
 namespace EARTH {
 namespace PT {
 
 
-status BD_Device::GetInstance(const Bus::DeviceInfo *deviceInfo, Device **device) {
+status BDDevice::GetInstance(const Bus::DeviceInfo *deviceInfo, Device **device) {
 
   if ((deviceInfo == NULL) || (device == NULL)) {
     TRACE_F(_T("Invalid param error.")
@@ -18,11 +19,11 @@ status BD_Device::GetInstance(const Bus::DeviceInfo *deviceInfo, Device **device
     return STATUS_INVALID_PARAM_ERROR;
   }
 
-  BD_Device *bdDevice;
+  BDDevice *bdDevice;
 
   // BD_Deviceクラスのインスタンス生成
   try {
-    bdDevice = new BD_Device(deviceInfo);
+    bdDevice = new BDDevice(deviceInfo);
     *device = bdDevice;
 
   } catch (std::bad_alloc&) {
@@ -38,25 +39,25 @@ status BD_Device::GetInstance(const Bus::DeviceInfo *deviceInfo, Device **device
 }
 
 
-status BD_Device::Delete() {
+status BDDevice::Delete() {
 
   delete this;
   return STATUS_OK;
 }
 
 
-status BD_Device::Open() {
+status BDDevice::Open() {
 
-  if (!mUsbAddress[0]) {
+  if (!mDevNum[0]) {
     TRACE_F(_T("General error.")
-      << _T(" mUsbAddress[0]=") << std::hex << mUsbAddress[0]);
+      << _T(" mUsbAddress[0]=") << std::hex << mDevNum[0]);
     return STATUS_GENERAL_ERROR;
   }
 
   status status = STATUS_OK;
 
   for (uint32 tunerIndex = 0; tunerIndex < DEVICE_COUNT; tunerIndex++) {
-    if (!mUsbAddress[tunerIndex])
+    if (!mDevNum[tunerIndex])
       break;
 
     // 既にインスタンス生成済みの場合はエラー
@@ -73,7 +74,7 @@ status BD_Device::Open() {
 
 
       // EzUsbFx2Lpの初期化
-      mUsbInstance[tunerIndex]->init(mUsbAddress[tunerIndex]);
+      mUsbInstance[tunerIndex]->init(mDevNum[tunerIndex]);
 
 
       // Jdts290532クラスのインスタンス生成
@@ -96,7 +97,7 @@ status BD_Device::Open() {
 }
 
 
-status BD_Device::Close() {
+status BDDevice::Close() {
 
   for (uint32 tunerIndex = 0; tunerIndex < DEVICE_COUNT; tunerIndex++) {
     for (uint32 i = 0; i < ISDB_COUNT; i++) {
@@ -113,7 +114,7 @@ status BD_Device::Close() {
 }
 
 
-status BD_Device::GetConstantInfo(ConstantInfo *info) const {
+status BDDevice::GetConstantInfo(ConstantInfo *info) const {
 
   if (info == nullptr) {
     TRACE_F(_T("Invalid param error.")
@@ -126,12 +127,13 @@ status BD_Device::GetConstantInfo(ConstantInfo *info) const {
   info->Version_RegisterMap = 0x01U;
   info->Version_FPGA = 0x04U;
   info->CanTransportTS = true;
+  info->BitLength_PageDescriptorSize = 0x14U;
 
   return STATUS_OK;
 }
 
 
-status BD_Device::SetLnbPower(LnbPower lnbPower) {
+status BDDevice::SetLnbPower(LnbPower lnbPower) {
 
   // LNB電源制御はハードウェアに未実装のため
   // 設定値の保持のみで何の制御もしない
@@ -142,7 +144,7 @@ status BD_Device::SetLnbPower(LnbPower lnbPower) {
 }
 
 
-status BD_Device::GetLnbPower(LnbPower *lnbPower) const {
+status BDDevice::GetLnbPower(LnbPower *lnbPower) const {
 
   // LNB電源制御はハードウェアに未実装のため
   // 設定値の保持のみで何の制御もしない
@@ -159,7 +161,7 @@ status BD_Device::GetLnbPower(LnbPower *lnbPower) const {
 }
 
 
-status BD_Device::SetLnbPowerWhenClose(LnbPower lnbPower) {
+status BDDevice::SetLnbPowerWhenClose(LnbPower lnbPower) {
 
   // LNB電源制御はハードウェアに未実装のため
   // 設定値の保持のみで何の制御もしない
@@ -170,7 +172,7 @@ status BD_Device::SetLnbPowerWhenClose(LnbPower lnbPower) {
 }
 
 
-status BD_Device::GetLnbPowerWhenClose(LnbPower *lnbPower) const {
+status BDDevice::GetLnbPowerWhenClose(LnbPower *lnbPower) const {
 
   // LNB電源制御はハードウェアに未実装のため
   // 設定値の保持のみで何の制御もしない
@@ -187,7 +189,7 @@ status BD_Device::GetLnbPowerWhenClose(LnbPower *lnbPower) const {
 }
 
 
-status BD_Device::InitTuner() {
+status BDDevice::InitTuner() {
 
   try {
     for (sint32 tunerIndex = 0; tunerIndex < DEVICE_COUNT; tunerIndex++) {
@@ -199,7 +201,7 @@ status BD_Device::InitTuner() {
         mChannelOffset[idx(isdb, tunerIndex)] = 0;
         mSleep[idx(isdb, tunerIndex)] = true;
 
-        if (mUsbAddress[tunerIndex]) {
+        if (mDevNum[tunerIndex]) {
 
           // チューナの初期化
           mTunerInstance[idx(isdb, tunerIndex)]->initTuner();
@@ -224,7 +226,7 @@ status BD_Device::InitTuner() {
 }
 
 
-status BD_Device::SetAmpPowerT(bool b) {
+status BDDevice::SetAmpPowerT(bool b) {
 
   // 未実装エラーを返却
   TRACE_F(_T("Not implimented."));
@@ -233,7 +235,7 @@ status BD_Device::SetAmpPowerT(bool b) {
 }
 
 
-status BD_Device::SetTunerSleep(ISDB isdb, uint32 tunerIndex, bool sleep) {
+status BDDevice::SetTunerSleep(ISDB isdb, uint32 tunerIndex, bool sleep) {
 
   try {
     validate(isdb, tunerIndex, false);
@@ -260,7 +262,7 @@ status BD_Device::SetTunerSleep(ISDB isdb, uint32 tunerIndex, bool sleep) {
 }
 
 
-status BD_Device::GetTunerSleep(ISDB isdb, uint32 tunerIndex, bool *sleep) const {
+status BDDevice::GetTunerSleep(ISDB isdb, uint32 tunerIndex, bool *sleep) const {
 
   if (sleep == nullptr) {
     TRACE_F(_T("Invalid param error.")
@@ -285,7 +287,7 @@ status BD_Device::GetTunerSleep(ISDB isdb, uint32 tunerIndex, bool *sleep) const
 }
 
 
-status BD_Device::SetFrequency(ISDB isdb, uint32 tunerIndex, uint32 channel, sint32 offset) {
+status BDDevice::SetFrequency(ISDB isdb, uint32 tunerIndex, uint32 channel, sint32 offset) {
 
   status status = STATUS_OK;
 
@@ -297,7 +299,7 @@ status BD_Device::SetFrequency(ISDB isdb, uint32 tunerIndex, uint32 channel, sin
     mTunerInstance[idx(isdb, tunerIndex)]->setFrequency(channel, offset);
 
     // チャネル切り替え完了からTSデータ転送開始まで指定時間スリープ
-    Sleep(FREQUENCY_SET_INTERVAL);
+    Sleep(BDUtil::mSetFrequencyDelay[isdb]);
 
     mReSync[idx(isdb, tunerIndex)] = true;
     mReady[idx(isdb, tunerIndex)] = true;
@@ -314,7 +316,7 @@ status BD_Device::SetFrequency(ISDB isdb, uint32 tunerIndex, uint32 channel, sin
 }
 
 
-status BD_Device::GetFrequency(ISDB isdb, uint32 tunerIndex, uint32 *channel, sint32 *offset) const {
+status BDDevice::GetFrequency(ISDB isdb, uint32 tunerIndex, uint32 *channel, sint32 *offset) const {
 
   if ((channel == nullptr) || (offset == nullptr)) {
     TRACE_F(_T("Invalid param error.")
@@ -341,7 +343,7 @@ status BD_Device::GetFrequency(ISDB isdb, uint32 tunerIndex, uint32 *channel, si
 }
 
 
-status BD_Device::GetFrequencyOffset(ISDB isdb, uint32 tunerIndex, sint32 *clock, sint32 *carrier) {
+status BDDevice::GetFrequencyOffset(ISDB isdb, uint32 tunerIndex, sint32 *clock, sint32 *carrier) {
 
   // 未実装エラーを返却
   TRACE_F(_T("Not implimented."));
@@ -350,7 +352,7 @@ status BD_Device::GetFrequencyOffset(ISDB isdb, uint32 tunerIndex, sint32 *clock
 }
 
 
-status BD_Device::GetCnAgc(ISDB isdb, uint32 tunerIndex, uint32 *cn100, uint32 *currentAgc, uint32 *maxAgc) {
+status BDDevice::GetCnAgc(ISDB isdb, uint32 tunerIndex, uint32 *cn100, uint32 *currentAgc, uint32 *maxAgc) {
 
   if ((cn100 == nullptr) || (currentAgc == nullptr) || (maxAgc == nullptr)) {
     TRACE_F(_T("Invalid param error.")
@@ -382,7 +384,7 @@ status BD_Device::GetCnAgc(ISDB isdb, uint32 tunerIndex, uint32 *cn100, uint32 *
 }
 
 
-status BD_Device::GetRFLevel(uint32 tunerIndex, float *level) {
+status BDDevice::GetRFLevel(uint32 tunerIndex, float *level) {
 
   // 未実装エラーを返却
   TRACE_F(_T("Not implimented."));
@@ -391,7 +393,7 @@ status BD_Device::GetRFLevel(uint32 tunerIndex, float *level) {
 }
 
 
-status BD_Device::SetIdS(uint32 tunerIndex, uint32 id) {
+status BDDevice::SetIdS(uint32 tunerIndex, uint32 id) {
 
   try {
     validate(ISDB_S, tunerIndex);
@@ -409,7 +411,7 @@ status BD_Device::SetIdS(uint32 tunerIndex, uint32 id) {
 }
 
 
-status BD_Device::GetIdS(uint32 tunerIndex, uint32 *id) {
+status BDDevice::GetIdS(uint32 tunerIndex, uint32 *id) {
 
   try {
     validate(ISDB_S, tunerIndex);
@@ -427,7 +429,7 @@ status BD_Device::GetIdS(uint32 tunerIndex, uint32 *id) {
 }
 
 
-status BD_Device::SetInnerErrorRateLayer(ISDB isdb, uint32 tunerIndex, LayerIndex layerIndex) {
+status BDDevice::SetInnerErrorRateLayer(ISDB isdb, uint32 tunerIndex, LayerIndex layerIndex) {
 
   // 未実装エラーを返却
   TRACE_F(_T("Not implimented."));
@@ -436,7 +438,7 @@ status BD_Device::SetInnerErrorRateLayer(ISDB isdb, uint32 tunerIndex, LayerInde
 }
 
 
-status BD_Device::GetInnerErrorRate(ISDB isdb, uint32 tunerIndex, ErrorRate *errorRate) {
+status BDDevice::GetInnerErrorRate(ISDB isdb, uint32 tunerIndex, ErrorRate *errorRate) {
 
   // 未実装エラーを返却
   TRACE_F(_T("Not implimented."));
@@ -445,7 +447,7 @@ status BD_Device::GetInnerErrorRate(ISDB isdb, uint32 tunerIndex, ErrorRate *err
 }
 
 
-status BD_Device::GetCorrectedErrorRate(ISDB isdb, uint32 tunerIndex, LayerIndex layerIndex, ErrorRate *errorRate) {
+status BDDevice::GetCorrectedErrorRate(ISDB isdb, uint32 tunerIndex, LayerIndex layerIndex, ErrorRate *errorRate) {
 
   // 未実装エラーを返却
   TRACE_F(_T("Not implimented."));
@@ -454,7 +456,7 @@ status BD_Device::GetCorrectedErrorRate(ISDB isdb, uint32 tunerIndex, LayerIndex
 }
 
 
-status BD_Device::ResetCorrectedErrorCount(ISDB isdb, uint32 tunerIndex) {
+status BDDevice::ResetCorrectedErrorCount(ISDB isdb, uint32 tunerIndex) {
 
   // 未実装エラーを返却
   TRACE_F(_T("Not implimented."));
@@ -463,7 +465,7 @@ status BD_Device::ResetCorrectedErrorCount(ISDB isdb, uint32 tunerIndex) {
 }
 
 
-status BD_Device::GetErrorCount(ISDB isdb, uint32 tunerIndex, uint32 *count) {
+status BDDevice::GetErrorCount(ISDB isdb, uint32 tunerIndex, uint32 *count) {
 
   // 未実装エラーを返却
   TRACE_F(_T("Not implimented."));
@@ -472,7 +474,7 @@ status BD_Device::GetErrorCount(ISDB isdb, uint32 tunerIndex, uint32 *count) {
 }
 
 
-status BD_Device::GetTmccS(uint32 tunerIndex, TmccS *tmcc) {
+status BDDevice::GetTmccS(uint32 tunerIndex, TmccS *tmcc) {
 
   if (tmcc == nullptr) {
     TRACE_F(_T("Invalid param error.")
@@ -497,7 +499,7 @@ status BD_Device::GetTmccS(uint32 tunerIndex, TmccS *tmcc) {
 }
 
 
-status BD_Device::GetLayerS(uint32 tunerIndex, LayerS *layer) {
+status BDDevice::GetLayerS(uint32 tunerIndex, LayerS *layer) {
 
   // 未実装エラーを返却
   TRACE_F(_T("Not implimented."));
@@ -506,7 +508,7 @@ status BD_Device::GetLayerS(uint32 tunerIndex, LayerS *layer) {
 }
 
 
-status BD_Device::GetTmccT(uint32 tunerIndex, TmccT *tmcc) {
+status BDDevice::GetTmccT(uint32 tunerIndex, TmccT *tmcc) {
 
   if (tmcc == nullptr) {
     TRACE_F(_T("Invalid param error.")
@@ -531,7 +533,7 @@ status BD_Device::GetTmccT(uint32 tunerIndex, TmccT *tmcc) {
 }
 
 
-status BD_Device::SetLayerEnable(ISDB isdb, uint32 tunerIndex, LayerMask layerMask) {
+status BDDevice::SetLayerEnable(ISDB isdb, uint32 tunerIndex, LayerMask layerMask) {
 
   // 未実装エラーを返却
   TRACE_F(_T("Not implimented."));
@@ -540,7 +542,7 @@ status BD_Device::SetLayerEnable(ISDB isdb, uint32 tunerIndex, LayerMask layerMa
 }
 
 
-status BD_Device::GetLayerEnable(ISDB isdb, uint32 tunerIndex, LayerMask *layerMask) const {
+status BDDevice::GetLayerEnable(ISDB isdb, uint32 tunerIndex, LayerMask *layerMask) const {
 
   // 未実装エラーを返却
   TRACE_F(_T("Not implimented."));
@@ -549,7 +551,7 @@ status BD_Device::GetLayerEnable(ISDB isdb, uint32 tunerIndex, LayerMask *layerM
 }
 
 
-status BD_Device::SetTsPinsMode(ISDB isdb, uint32 index, const TsPinsMode *mode) {
+status BDDevice::SetTsPinsMode(ISDB isdb, uint32 index, const TsPinsMode *mode) {
 
   // 未実装エラーを返却
   TRACE_F(_T("Not implimented."));
@@ -558,7 +560,7 @@ status BD_Device::SetTsPinsMode(ISDB isdb, uint32 index, const TsPinsMode *mode)
 }
 
 
-status BD_Device::GetTsPinsLevel(ISDB isdb, uint32 index, TsPinsLevel *level) {
+status BDDevice::GetTsPinsLevel(ISDB isdb, uint32 index, TsPinsLevel *level) {
 
   // 未実装エラーを返却
   TRACE_F(_T("Not implimented."));
@@ -567,14 +569,14 @@ status BD_Device::GetTsPinsLevel(ISDB isdb, uint32 index, TsPinsLevel *level) {
 }
 
 
-status BD_Device::GetTsSyncByte(ISDB isdb, uint32 index, uint8 *syncByte) {
+status BDDevice::GetTsSyncByte(ISDB isdb, uint32 index, uint8 *syncByte) {
 
   *syncByte = TS_SYNC_BYTE;
   return STATUS_OK;
 }
 
 
-status BD_Device::SetRamPinsMode(RamPinsMode mode) {
+status BDDevice::SetRamPinsMode(RamPinsMode mode) {
 
   // 未実装エラーを返却
   TRACE_F(_T("Not implimented."));
@@ -583,7 +585,7 @@ status BD_Device::SetRamPinsMode(RamPinsMode mode) {
 }
 
 
-status BD_Device::LockBuffer__Obsolated__(void *ptr, uint32 size, void **handle) {
+status BDDevice::LockBuffer__Obsolated__(void *ptr, uint32 size, void **handle) {
 
   // 未実装エラーを返却
   TRACE_F(_T("Not implimented."));
@@ -592,7 +594,7 @@ status BD_Device::LockBuffer__Obsolated__(void *ptr, uint32 size, void **handle)
 }
 
 
-status BD_Device::LockBuffer(void *ptr, uint32 size, TransferDirection direction, void **handle) {
+status BDDevice::LockBuffer(void *ptr, uint32 size, TransferDirection direction, void **handle) {
 
   uint64 addess = reinterpret_cast<uint64>(ptr);
   if ((addess & 0x07) != 0) {
@@ -603,19 +605,16 @@ status BD_Device::LockBuffer(void *ptr, uint32 size, TransferDirection direction
 
   try {
     // 転送用バッファ情報を生成
-    BufferDesc* bufferDesc = new BufferDesc();
-    bufferDesc->infoCount = 1;
-    bufferDesc->bufferInfo.Address = addess;
-    bufferDesc->bufferInfo.Size = size;
-    bufferDesc->isdb = ISDB_COUNT;
-    bufferDesc->tunerIndex = DEVICE_COUNT;
-    bufferDesc->sync = false;
-    bufferDesc->next = nullptr;
+    mBufferDescs[addess] = std::unique_ptr<BufferDesc>(new BufferDesc());
+    mBufferDescs[addess]->infoCount = 1;
+    mBufferDescs[addess]->bufferInfo.Address = addess;
+    mBufferDescs[addess]->bufferInfo.Size = size;
+    mBufferDescs[addess]->isdb = ISDB_COUNT;
+    mBufferDescs[addess]->tunerIndex = DEVICE_COUNT;
+    mBufferDescs[addess]->sync = false;
+    mBufferDescs[addess]->next = nullptr;
 
-    // メンバ変数に詰める
-    mBufferDescs[addess] = std::unique_ptr<BufferDesc>(bufferDesc);
-
-    *handle = bufferDesc;
+    *handle = mBufferDescs[addess].get();
 
   } catch (std::bad_alloc&) {
     return STATUS_OUT_OF_MEMORY_ERROR;
@@ -625,25 +624,25 @@ status BD_Device::LockBuffer(void *ptr, uint32 size, TransferDirection direction
 }
 
 
-status BD_Device::SyncBufferCpu(void *handle) {
+status BDDevice::SyncBufferCpu(void *handle) {
 
   return STATUS_OK;
 }
 
 
-status BD_Device::SyncBufferIo(void *handle) {
+status BDDevice::SyncBufferIo(void *handle) {
 
   return STATUS_OK;
 }
 
 
-status BD_Device::UnlockBuffer(void *handle) {
+status BDDevice::UnlockBuffer(void *handle) {
 
   return STATUS_OK;
 }
 
 
-status BD_Device::GetBufferInfo(void *handle, const BufferInfo **infoTable, uint32 *infoCount) {
+status BDDevice::GetBufferInfo(void *handle, const BufferInfo **infoTable, uint32 *infoCount) {
 
   BufferDesc* bufferDesc = static_cast<BufferDesc*>(handle);
   *infoTable = &(bufferDesc->bufferInfo);
@@ -653,7 +652,7 @@ status BD_Device::GetBufferInfo(void *handle, const BufferInfo **infoTable, uint
 }
 
 
-status BD_Device::SetTransferPageDescriptorAddress(ISDB isdb, uint32 tunerIndex, uint64 pageDescriptorAddress) {
+status BDDevice::SetTransferPageDescriptorAddress(ISDB isdb, uint32 tunerIndex, uint64 pageDescriptorAddress) {
 
   try {
     validate(isdb, tunerIndex, false);
@@ -716,7 +715,7 @@ status BD_Device::SetTransferPageDescriptorAddress(ISDB isdb, uint32 tunerIndex,
 }
 
 
-status BD_Device::SetTransferEnabled(ISDB isdb, uint32 tunerIndex, bool enabled) {
+status BDDevice::SetTransferEnabled(ISDB isdb, uint32 tunerIndex, bool enabled) {
 
   try {
     validate(isdb, tunerIndex, false);
@@ -750,7 +749,7 @@ status BD_Device::SetTransferEnabled(ISDB isdb, uint32 tunerIndex, bool enabled)
 }
 
 
-status BD_Device::GetTransferEnabled(ISDB isdb, uint32 tunerIndex, bool *enabled) const {
+status BDDevice::GetTransferEnabled(ISDB isdb, uint32 tunerIndex, bool *enabled) const {
 
   try {
     validate(isdb, tunerIndex, false);
@@ -766,13 +765,13 @@ status BD_Device::GetTransferEnabled(ISDB isdb, uint32 tunerIndex, bool *enabled
 }
 
 
-status BD_Device::SetTransferTestMode(ISDB isdb, uint32 tunerIndex, bool testMode, uint16 initial, bool _not) {
+status BDDevice::SetTransferTestMode(ISDB isdb, uint32 tunerIndex, bool testMode, uint16 initial, bool _not) {
 
   return STATUS_OK;
 }
 
 
-status BD_Device::GetTransferInfo(ISDB isdb, uint32 tunerIndex, TransferInfo *transferInfo) {
+status BDDevice::GetTransferInfo(ISDB isdb, uint32 tunerIndex, TransferInfo *transferInfo) {
 
   try {
     validate(isdb, tunerIndex, false);
@@ -797,7 +796,7 @@ status BD_Device::GetTransferInfo(ISDB isdb, uint32 tunerIndex, TransferInfo *tr
 }
 
 
-bool BD_Device::receive(Device::ISDB isdb, uint32 tunerIndex, uint8 * data, uint32 size) {
+bool BDDevice::receive(Device::ISDB isdb, uint32 tunerIndex, uint8 * data, uint32 size) {
 
   if (!mReady[idx(isdb, tunerIndex)]) {
     return true;
@@ -876,7 +875,7 @@ bool BD_Device::receive(Device::ISDB isdb, uint32 tunerIndex, uint8 * data, uint
 }
 
 
-void BD_Device::validate(ISDB isdb, uint32 tunerIndex, bool checkSleep) const {
+void BDDevice::validate(ISDB isdb, uint32 tunerIndex, bool checkSleep) const {
 
   // パラメータのチェック
   if ((DEVICE_COUNT <= tunerIndex) || (ISDB_COUNT <= isdb)) {
@@ -887,7 +886,7 @@ void BD_Device::validate(ISDB isdb, uint32 tunerIndex, bool checkSleep) const {
   }
 
   // 2個目のチューナーが存在するかのチェック
-  if (!mUsbAddress[tunerIndex]) {
+  if (!mDevNum[tunerIndex]) {
     //TRACE_F(_T("No USB address.")
     //  << _T(" tunerIndex=") << std::dec << tunerIndex);
     throw SingleDeviceException("No USB address.");
@@ -914,7 +913,7 @@ void BD_Device::validate(ISDB isdb, uint32 tunerIndex, bool checkSleep) const {
 }
 
 
-uint8 * BD_Device::findSyncByte(uint8 * data, uint32 size) {
+uint8 * BDDevice::findSyncByte(uint8 * data, uint32 size) {
 
   bool find = false;
   uint8* ptr;
@@ -945,21 +944,21 @@ uint8 * BD_Device::findSyncByte(uint8 * data, uint32 size) {
 }
 
 
-BD_Device::BD_Device(const Bus::DeviceInfo *deviceInfo) {
+BDDevice::BDDevice(const Bus::DeviceInfo *deviceInfo) {
 
-  // Bus:1個目のデバイスのUSBバスアドレス
-  mUsbAddress[0] = static_cast<uint8>(deviceInfo->Bus);
+  // Bus:1個目のデバイス番号
+  mDevNum[0] = static_cast<uint8>(deviceInfo->Bus);
 
 
-  // Slot:2個目のデバイスのUSBバスアドレス
-  mUsbAddress[1] = static_cast<uint8>(deviceInfo->Slot);
+  // Slot:2個目のデバイスの番号
+  mDevNum[1] = static_cast<uint8>(deviceInfo->Slot);
 
   // チューナー単位の設定値の初期化
   for (uint32 tunerIndex = 0; tunerIndex < DEVICE_COUNT; tunerIndex++) {
     for (uint32 i = 0; i < ISDB_COUNT; i++) {
       ISDB isdb = static_cast<ISDB>(i);
 
-      mDescriptor[idx(isdb, tunerIndex)] = 0;
+      mDescriptor[idx(isdb, tunerIndex)] = nullptr;
       mOffset[idx(isdb, tunerIndex)] = 0;
       mTransferEnabled[idx(isdb, tunerIndex)] = false;
       mReady[idx(isdb, tunerIndex)] = false;
