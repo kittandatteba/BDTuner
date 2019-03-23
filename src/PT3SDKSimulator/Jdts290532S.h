@@ -57,14 +57,14 @@ private:
   static constexpr uint32 CHANNEL_MAX = 35;
 
   /**
-  * レジスタ設定値を初期化する。
-  */
-  static void initReg(uint8* reg_val, uint8 offset, size_t size);
-
-  /**
   * チャンネル周波数を取得する。
   */
   static uint32 getChannelFrequency(uint32 channel, sint32 offset);
+
+  /**
+  * レジスタ設定値を初期化する。
+  */
+  void initReg(uint8* reg_val, uint8 offset, size_t size) const;
 
   /**
   * チャンネル周波数でチューニングする。

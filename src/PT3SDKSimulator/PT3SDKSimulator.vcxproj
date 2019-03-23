@@ -167,8 +167,9 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="BD_Bus.h" />
-    <ClInclude Include="BD_Device.h" />
+    <ClInclude Include="BDBus.h" />
+    <ClInclude Include="BDDevice.h" />
+    <ClInclude Include="BDUtil.h" />
     <ClInclude Include="EzUsbFx2Lp.h" />
     <ClInclude Include="II2C.h" />
     <ClInclude Include="IJdts290532.h" />
@@ -180,8 +181,9 @@
     <ClInclude Include="targetver.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="BD_Bus.cpp" />
-    <ClCompile Include="BD_Device.cpp" />
+    <ClCompile Include="BDBus.cpp" />
+    <ClCompile Include="BDDevice.cpp" />
+    <ClCompile Include="BDUtil.cpp" />
     <ClCompile Include="dllmain.cpp" />
     <ClCompile Include="EzUsbFx2Lp.cpp" />
     <ClCompile Include="IJdts290532.cpp" />

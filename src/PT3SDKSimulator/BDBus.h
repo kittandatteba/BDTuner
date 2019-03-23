@@ -9,7 +9,7 @@ namespace PT {
 /**
 * EARTH_PT3.hのBusクラス（インターフェース）の実装クラス。
 */
-class BD_Bus : public Bus {
+class BDBus : public Bus {
 
 public:
 
@@ -28,19 +28,19 @@ protected:
   /**
   * コンストラクタ（非公開）
   */
-  BD_Bus();
+  BDBus();
 
   /**
   * デストラクタ（非公開）
   */
-  virtual ~BD_Bus() override = default;
+  virtual ~BDBus() override = default;
 
 private:
 
-  BD_Bus(BD_Bus const&) = delete;
-  BD_Bus(BD_Bus&&) = delete;
-  BD_Bus& operator =(BD_Bus const&) = delete;
-  BD_Bus& operator =(BD_Bus&&) = delete;
+  BDBus(BDBus const&) = delete;
+  BDBus(BDBus&&) = delete;
+  BDBus& operator =(BDBus const&) = delete;
+  BDBus& operator =(BDBus&&) = delete;
 };
 
 }

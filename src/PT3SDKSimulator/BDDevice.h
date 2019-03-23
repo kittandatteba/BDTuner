@@ -14,7 +14,7 @@ class IJdts290532;
 /**
 * EARTH_PT3.hのDeviceクラス（インターフェース）の実装クラス。
 */
-class BD_Device : public Device, public IReceiver {
+class BDDevice : public Device, public IReceiver {
 
 public:
 
@@ -120,7 +120,7 @@ public:
     bool testMode = false, uint16 initial = 0, bool _not = false) override;
 
   virtual status GetTransferInfo(ISDB isdb, uint32 tunerIndex,
-    TransferInfo *transferInfo);
+    TransferInfo *transferInfo) override;
 
   virtual bool receive(Device::ISDB isdb, uint32 tunerIndex, uint8* data, uint32 size) override;
 
@@ -129,12 +129,12 @@ protected:
   /**
   * コンストラクタ（非公開）
   */
-  BD_Device(const Bus::DeviceInfo *deviceInfo);
+  BDDevice(const Bus::DeviceInfo *deviceInfo);
 
   /**
   * デストラクタ（非公開）
   */
-  virtual ~BD_Device() override = default;
+  virtual ~BDDevice() override = default;
 
 private:
 
@@ -176,15 +176,9 @@ private:
   static constexpr uint32 TS_SYNC_COUNT = 8;
 
   /**
-  * チャネル切り替え時からTSデータ転送開始までの待ち時間（msec）
+  * デバイス番号（BD_Busから連携）
   */
-  static constexpr uint32 FREQUENCY_SET_INTERVAL = 300;
-
-
-  /**
-  * USBバスアドレス（BD_Busから連携）
-  */
-  uint8	mUsbAddress[DEVICE_COUNT];
+  uint8	mDevNum[DEVICE_COUNT];
 
   /**
   * EzUsbFx2Lpインスタンス
@@ -254,10 +248,10 @@ private:
     return isdb * 2 + tunerIndex;
   }
 
-  BD_Device(BD_Device const&) = delete;
-  BD_Device(BD_Device&&) = delete;
-  BD_Device& operator =(BD_Device const&) = delete;
-  BD_Device& operator =(BD_Device&&) = delete;
+  BDDevice(BDDevice const&) = delete;
+  BDDevice(BDDevice&&) = delete;
+  BDDevice& operator =(BDDevice const&) = delete;
+  BDDevice& operator =(BDDevice&&) = delete;
 };
 
 }
